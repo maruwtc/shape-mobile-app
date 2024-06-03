@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "shape-mobileapp",
-    "slug": "shape-mobileapp",
+    "name": "shape-mobile-app",
+    "slug": "shape-mobile-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
