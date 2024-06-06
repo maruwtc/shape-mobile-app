@@ -1,23 +1,25 @@
-import { View } from "@/components/Themed";
-import Header from "@/components/Header";
+import { View, Alert } from "react-native";
 import React, { useState, useEffect } from "react";
 import { Keyboard, TouchableWithoutFeedback, StyleSheet } from "react-native";
-import { TextInput, Button, Card, Text } from "react-native-paper";
-import { GetLanguagesList } from "@/api/deepl";
+import { TextInput, Button, Card } from "react-native-paper";
+import { GetLanguagesList, TranslateText } from "@/api/deepl";
 import DropdownList from "@/components/DropdownList";
+import Header from "@/components/Header";
 
 const Home = () => {
   const [input, setInput] = useState("");
   const [output, setOutput] = useState("");
-  const [languagesName, setLanguagesName] = useState([]);
+  const [languagesName, setLanguagesName] = useState<string[]>([]);
   const [languagesCode, setLanguagesCode] = useState([]);
+  const [selectedLanguage, setSelectedLanguage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const fetchLanguages = async () => {
       try {
         const languages = await GetLanguagesList();
-        setLanguagesName(languages.map((language: { name: string }) => language.name));
-        setLanguagesCode(languages.map((language: { code: string }) => language.code));
+        setLanguagesName(languages.map((language: any) => language.name));
+        setLanguagesCode(languages.map((language: any) => language.code));
       } catch (error) {
         console.error("Error fetching languages:", error);
       }
@@ -25,10 +27,29 @@ const Home = () => {
     fetchLanguages();
   }, []);
 
-  const handleTranslate = () => {
-    // Mock translation logic; replace with actual translation API call
-    setOutput(input.split("").reverse().join(""));
-  };
+  const fetchTranslateResult = async () => {
+    if (!input.trim() || !selectedLanguage) {
+      Alert.alert("Error", "Please enter text and select a language.");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const selectedIndex = languagesName.indexOf(selectedLanguage);
+      if (selectedIndex !== -1) {
+        const selectedLanguageCode = languagesCode[selectedIndex];
+        const translatedText = await TranslateText(input, selectedLanguageCode);
+        console.log("Input:", input, "Target Language:", selectedLanguage, "Result:", translatedText)
+        setOutput(translatedText);
+      } else {
+        console.error("Selected language not found in the list.");
+      }
+    } catch (error) {
+      console.error("Error fetching translation:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   const handleClear = () => {
     setInput("");
@@ -40,46 +61,50 @@ const Home = () => {
       <Header title="Home" />
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={styles.container}>
-          <TextInput
-            mode="outlined"
-            label="Enter Text"
-            value={input}
-            style={styles.input}
-            onChangeText={setInput}
-            multiline
-            numberOfLines={4}
-          />
-          <View style={styles.buttonContainer}>
-            <Button
-              mode="outlined"
-              style={[styles.button, styles.halfButton]}
-              onPress={handleClear}
-            >
-              Clear
-            </Button>
-            <Button
-              mode="contained"
-              style={[styles.button, styles.halfButton]}
-              onPress={() => {
-                handleTranslate();
-                Keyboard.dismiss();
-              }}
-            >
-              Translate
-            </Button>
-          </View>
-          <DropdownList data={languagesName} />
           <Card style={styles.card}>
             <Card.Content>
               <TextInput
                 mode="outlined"
+                label="Enter Text"
+                value={input}
+                style={styles.input}
+                onChangeText={setInput}
+                multiline
+                numberOfLines={4}
+              />
+              <DropdownList
+                label="Target Language"
+                data={languagesName}
+                onSelect={(item) => setSelectedLanguage(item)}
+              />
+              <View style={styles.buttonContainer}>
+                <Button
+                  mode="outlined"
+                  style={[styles.button, styles.halfButton]}
+                  onPress={handleClear}
+                >
+                  Clear
+                </Button>
+                <Button
+                  mode="contained"
+                  style={[styles.button, styles.halfButton]}
+                  onPress={() => {
+                    fetchTranslateResult();
+                    Keyboard.dismiss();
+                  }}
+                >
+                  Translate
+                </Button>
+              </View>
+              <TextInput
+                mode="outlined"
                 label="Translated Text"
-                value={output}
+                value={isLoading ? "Loading..." : output}
                 style={styles.input}
                 editable={false}
                 multiline
               />
-              <View style={styles.buttonContainer}>
+              {/* <View style={styles.buttonContainer}>
                 <Button
                   mode="outlined"
                   style={[styles.button, styles.halfButton]}
@@ -91,13 +116,12 @@ const Home = () => {
                   mode="contained"
                   style={[styles.button, styles.halfButton]}
                   onPress={() => {
-                    handleTranslate();
                     Keyboard.dismiss();
                   }}
                 >
                   Show Optimized
                 </Button>
-              </View>
+              </View> */}
             </Card.Content>
           </Card>
         </View>
@@ -118,7 +142,8 @@ const styles = StyleSheet.create({
   input: {
     width: '100%',
     marginBottom: 16,
-    minHeight: 180
+    minHeight: 180,
+    maxHeight: 180,
   },
   buttonContainer: {
     width: '100%',
@@ -129,11 +154,15 @@ const styles = StyleSheet.create({
   button: {
     flex: 1,
     marginHorizontal: 4,
+    marginBottom: 10,
   },
   halfButton: {
     width: '48%',
   },
   card: {
     width: '100%',
+  },
+  loader: {
+    margin: 16,
   },
 });
