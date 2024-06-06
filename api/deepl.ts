@@ -22,11 +22,6 @@ export const DeepLTest = async () => {
     }
 }
 
-interface Language {
-    name: string;
-    // Add other properties if necessary
-}
-
 export const GetLanguagesList = async () => {
     try {
         const response = await fetch("https://api-free.deepl.com/v2/languages?type=target", {
@@ -40,5 +35,29 @@ export const GetLanguagesList = async () => {
     } catch (error) {
         console.error(error);
         return [];
+    }
+}
+
+export const TranslateText = async (text: String, targetlanguage: String) => {
+    try {
+        const response = await fetch("https://api-free.deepl.com/v2/translate", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `DeepL-Auth-Key ${apikey}`
+            },
+            body: JSON.stringify({
+                "text": [
+                    `${text}`
+                ],
+                "target_lang": `${targetlanguage}`
+            })
+        });
+        const data = await response.json();
+        const detectedSourceLanguage = data.translations[0].detected_source_language;
+        const translatedText = data.translations[0].text;
+        return translatedText;
+    } catch (error) {
+        console.error(error);
     }
 }
