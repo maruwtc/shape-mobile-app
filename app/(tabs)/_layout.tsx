@@ -2,7 +2,8 @@ import React from 'react';
 import { CommonActions } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { BottomNavigation } from 'react-native-paper';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import Home from './index';
 import OCR from './ocr';
 import Speech from './speech';
@@ -68,7 +69,7 @@ export default function TabLayout() {
           options={{
             tabBarLabel: 'Home',
             tabBarIcon: ({ color, size }) => {
-              return <Icon name="translate" size={size} color={color} />;
+              return <MaterialCommunityIcons name="translate" size={size} color={color} />;
             },
           }}
         />
@@ -78,17 +79,17 @@ export default function TabLayout() {
           options={{
             tabBarLabel: 'OCR',
             tabBarIcon: ({ color, size }) => {
-              return <Icon name="camera-outline" size={size} color={color} />;
+              return <MaterialCommunityIcons name="camera-outline" size={size} color={color} />;
             },
           }}
         />
         <Tab.Screen
-          name="speech"
+          name="voice"
           component={Speech}
           options={{
-            tabBarLabel: 'Speech',
+            tabBarLabel: 'voice',
             tabBarIcon: ({ color, size }) => {
-              return <Icon name="bullhorn-outline" size={size} color={color} />;
+              return <MaterialIcons name="keyboard-voice" size={size} color={color} />;
             },
           }}
         />
@@ -98,7 +99,7 @@ export default function TabLayout() {
           options={{
             tabBarLabel: 'Account',
             tabBarIcon: ({ color, size }) => {
-              return <Icon name="account-settings-outline" size={size} color={color} />;
+              return <MaterialCommunityIcons name="account-settings-outline" size={size} color={color} />;
             },
           }}
         />
