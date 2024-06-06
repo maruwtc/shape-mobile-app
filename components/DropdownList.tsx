@@ -2,7 +2,13 @@ import React, { useState, useCallback } from 'react';
 import { View, StatusBar, FlatList, TouchableOpacity, Text, Keyboard, TouchableWithoutFeedback } from 'react-native';
 import { TextInput } from 'react-native-paper';
 
-const DropdownList = ({ data }: { data: string[] }) => {
+interface DropdownListProps {
+    data: string[];
+    onSelect: (value: string) => void;
+    label: string;
+}
+
+const DropdownList: React.FC<DropdownListProps> = ({ data, onSelect, label }) => {
     const [userinput, setUserinput] = useState('');
     const [show, setShow] = useState(false);
 
@@ -16,10 +22,11 @@ const DropdownList = ({ data }: { data: string[] }) => {
         setShow(false);
     }, []);
 
-    const hidePicker = useCallback((item: any) => {
+    const hidePicker = useCallback((item: string) => {
         setShow(false);
         setUserinput(item);
-    }, []);
+        onSelect(item);
+    }, [onSelect]);
 
     const handleOutsidePress = useCallback(() => {
         if (show) {
@@ -30,10 +37,11 @@ const DropdownList = ({ data }: { data: string[] }) => {
     return (
         <TouchableWithoutFeedback onPress={handleOutsidePress}>
             <View style={{ top: StatusBar.currentHeight, zIndex: 99 }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginVertical: 10 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginBottom: 10 }}>
                     <View style={{ width: '100%' }}>
                         <TextInput
-                            label={'Language'}
+                            label={label}
+                            disabled
                             placeholder={show ? '' : 'e.g.: Dutch'}
                             value={userinput}
                             style={{ width: '100%' }}
