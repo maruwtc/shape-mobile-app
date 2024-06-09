@@ -1,29 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet } from 'react-native';
 import { Audio } from 'expo-av';
 import Header from '@/components/Header';
-import {
-    Button
-} from "react-native-paper";
+import { IconButton, Button, Card, Divider, TextInput } from "react-native-paper";
+import { CreatePrediction, GetPredictionResult, CacnelPrediction } from '@/api/replicate';
+import { UploadAudio } from '@/api/firebase';
 
-export default function App() {
-    const [sound, setSound] = useState();
-    const [recording, setRecording] = useState();
-    const [recordingUri, setRecordingUri] = useState(null);
+const App = () => {
+    const [sound, setSound] = useState<Audio.Sound | null>(null);
+    const [recording, setRecording] = useState<Audio.Recording | null>(null);
+    const [recordingUri, setRecordingUri] = useState<string | null>(null);
+    const [transcription, setTranscription] = useState<string>("");
     const [permissionResponse, requestPermission] = Audio.usePermissions();
-
-    async function playSound() {
-        if (recordingUri) {
-            console.log('Loading Sound');
-            const { sound } = await Audio.Sound.createAsync({ uri: recordingUri });
-            setSound(sound);
-
-            console.log('Playing Sound');
-            await sound.playAsync();
-        } else {
-            console.log('No recording available to play');
-        }
-    }
+    const [translation, setTranslation] = useState<string>("");
 
     useEffect(() => {
         return sound
@@ -34,9 +22,9 @@ export default function App() {
             : undefined;
     }, [sound]);
 
-    async function startRecording() {
+    const startRecording = async () => {
         try {
-            if (permissionResponse.status !== 'granted') {
+            if (permissionResponse && permissionResponse.status !== 'granted') {
                 console.log('Requesting permission..');
                 await requestPermission();
             }
@@ -52,41 +40,97 @@ export default function App() {
         } catch (err) {
             console.error('Failed to start recording', err);
         }
-    }
+    };
 
-    async function stopRecording() {
+    const stopRecording = async () => {
         console.log('Stopping recording..');
+        if (!recording) return;
         await recording.stopAndUnloadAsync();
         await Audio.setAudioModeAsync({
             allowsRecordingIOS: false,
         });
         const uri = recording.getURI();
         setRecordingUri(uri);
-        setRecording(undefined);
+        setRecording(null);
         console.log('Recording stopped and stored at', uri);
-    }
+    };
+
+    const playLastRecording = async () => {
+        if (recordingUri) {
+            console.log('Loading Sound');
+            const { sound } = await Audio.Sound.createAsync({ uri: recordingUri });
+            setSound(sound);
+            console.log('Playing Sound', recordingUri);
+            await sound.playAsync();
+        } else {
+            console.log('No recording available to play');
+        }
+    };
+
+    const upLoadRecording = async () => {
+        if (!recordingUri) return;
+        const uploadDateTime = new Date().toISOString().replace(/[-:.]/g, '');
+        const filename = `recorded_audio_${uploadDateTime}.m4a`;
+        try {
+            const firebaseUrl = await UploadAudio({ name: filename, uri: recordingUri });
+            console.log("Audio uploaded to Firebase Storage:", firebaseUrl);
+            if (!firebaseUrl) {
+                console.error("Error: Firebase URL is null or undefined.");
+                return;
+            }
+            const { geturl, cancelurl } = await CreatePrediction(firebaseUrl);
+            console.log("Prediction created successfully: geturl:", geturl, "cancelurl:", cancelurl);
+            let result;
+            while (true) {
+                result = await GetPredictionResult(geturl);
+                if (result.status === 'succeeded' || result.status === 'failed') {
+                    break;
+                }
+                await new Promise(resolve => setTimeout(resolve, 2000));
+            }
+            if (result.status === 'succeeded') {
+                console.log("Transcription result:", result.output.text);
+                setTranscription(result.output.text);
+            } else {
+                console.error("Transcription failed");
+                await CacnelPrediction(cancelurl);
+            }
+        } catch (error) {
+            console.error("Error uploading audio to Firebase Storage or fetching transcription:", error);
+        }
+    };
 
     return (
         <>
-            <Header title="OCR" />
-            <View style={styles.container}>
-                <Button
-                    style={styles.button}
-                    onPress={recording ? stopRecording : startRecording}
-                >{recording ? 'Stop Recording' : 'Start Recording'}</Button>
-                <Button style={styles.button} onPress={playSound}>Play Last Recording</Button>
-            </View>
+            <Header title="Speech To Text" />
+            <Card className="flex-1 justify-center items-center w-full h-full">
+                <Card.Content className="justify-center items-center">
+                    <TextInput
+                        mode="outlined"
+                        label="Original Text"
+                        value={transcription}
+                        className="w-full min-h-[180px] max-h-[180px]"
+                        editable={false}
+                        multiline
+                    />
+                    <Divider className='w-full my-4 bg-gray-500' />
+                    <TextInput
+                        mode="outlined"
+                        label="Translated Text"
+                        value={translation}
+                        className="w-full min-h-[180px] max-h-[180px]"
+                        editable={false}
+                        multiline
+                    />
+                    <IconButton mode='outlined' icon="moon-full" size={48} iconColor={recording ? 'red' : 'green'} onPress={recording ? stopRecording : startRecording} className='mt-4' />
+                </Card.Content>
+                <Card.Actions className='justify-between items-center'>
+                    <Button onPress={playLastRecording}>Play Last Recording</Button>
+                    <Button onPress={upLoadRecording}>Upload & Transcribe</Button>
+                </Card.Actions>
+            </Card>
         </>
     );
-}
+};
 
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    button: {
-        marginBottom: 10,
-    },
-});
+export default App;
