@@ -1,7 +1,6 @@
-import { View, Alert } from "react-native";
+import { View, Alert, Keyboard, TouchableWithoutFeedback } from "react-native";
 import React, { useState, useEffect } from "react";
-import { Keyboard, TouchableWithoutFeedback, StyleSheet } from "react-native";
-import { TextInput, Button, Card } from "react-native-paper";
+import { TextInput, Button, Card, Badge } from "react-native-paper";
 import { GetLanguagesList, TranslateText } from "@/api/deepl";
 import DropdownList from "@/components/DropdownList";
 import Header from "@/components/Header";
@@ -9,22 +8,22 @@ import Header from "@/components/Header";
 const Home = () => {
   const [input, setInput] = useState("");
   const [output, setOutput] = useState("");
+  const [detectedLanguage, setDetectedLanguage] = useState<string>("");
   const [languagesName, setLanguagesName] = useState<string[]>([]);
-  const [languagesCode, setLanguagesCode] = useState([]);
+  const [languagesCode, setLanguagesCode] = useState<string[]>([]);
   const [selectedLanguage, setSelectedLanguage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    const fetchLanguages = async () => {
+    (async () => {
       try {
         const languages = await GetLanguagesList();
-        setLanguagesName(languages.map((language: any) => language.name));
-        setLanguagesCode(languages.map((language: any) => language.code));
+        setLanguagesName(languages.map(({ name }: any) => name));
+        setLanguagesCode(languages.map(({ code }: any) => code));
       } catch (error) {
         console.error("Error fetching languages:", error);
       }
-    };
-    fetchLanguages();
+    })();
   }, []);
 
   const fetchTranslateResult = async () => {
@@ -32,15 +31,17 @@ const Home = () => {
       Alert.alert("Error", "Please enter text and select a language.");
       return;
     }
-
     setIsLoading(true);
     try {
       const selectedIndex = languagesName.indexOf(selectedLanguage);
       if (selectedIndex !== -1) {
-        const selectedLanguageCode = languagesCode[selectedIndex];
-        const translatedText = await TranslateText(input, selectedLanguageCode);
-        console.log("Input:", input, "Target Language:", selectedLanguage, "Result:", translatedText)
-        setOutput(translatedText);
+        const translatedText = await TranslateText(input, languagesCode[selectedIndex]);
+        if (translatedText) {
+          setOutput(translatedText.translatedText);
+          setDetectedLanguage(translatedText.detectedSourceLanguage);
+        } else {
+          console.error("Translated text is undefined.");
+        }
       } else {
         console.error("Selected language not found in the list.");
       }
@@ -49,7 +50,7 @@ const Home = () => {
     } finally {
       setIsLoading(false);
     }
-  }
+  };
 
   const handleClear = () => {
     setInput("");
@@ -60,109 +61,21 @@ const Home = () => {
     <>
       <Header title="Home" />
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={styles.container}>
-          <Card style={styles.card}>
-            <Card.Content>
-              <TextInput
-                mode="outlined"
-                label="Enter Text"
-                value={input}
-                style={styles.input}
-                onChangeText={setInput}
-                multiline
-                numberOfLines={4}
-              />
-              <DropdownList
-                label="Target Language"
-                data={languagesName}
-                onSelect={(item) => setSelectedLanguage(item)}
-              />
-              <View style={styles.buttonContainer}>
-                <Button
-                  mode="outlined"
-                  style={[styles.button, styles.halfButton]}
-                  onPress={handleClear}
-                >
-                  Clear
-                </Button>
-                <Button
-                  mode="contained"
-                  style={[styles.button, styles.halfButton]}
-                  onPress={() => {
-                    fetchTranslateResult();
-                    Keyboard.dismiss();
-                  }}
-                >
-                  Translate
-                </Button>
-              </View>
-              <TextInput
-                mode="outlined"
-                label="Translated Text"
-                value={isLoading ? "Loading..." : output}
-                style={styles.input}
-                editable={false}
-                multiline
-              />
-              {/* <View style={styles.buttonContainer}>
-                <Button
-                  mode="outlined"
-                  style={[styles.button, styles.halfButton]}
-                  onPress={handleClear}
-                >
-                  Show Original
-                </Button>
-                <Button
-                  mode="contained"
-                  style={[styles.button, styles.halfButton]}
-                  onPress={() => {
-                    Keyboard.dismiss();
-                  }}
-                >
-                  Show Optimized
-                </Button>
-              </View> */}
-            </Card.Content>
-          </Card>
-        </View>
-      </TouchableWithoutFeedback>
+        <Card className="flex-1 justify-center items-center w-full h-full">
+          <Card.Content>
+            <Badge className="text-inherit bg-transparent text-teal-500">{detectedLanguage ? `Detected Language: ${detectedLanguage}` : "Detected Language:"}</Badge>
+            <TextInput mode="outlined" label="Enter Text" value={input} className="w-full min-h-[200px] max-h-[200px]" onChangeText={setInput} multiline numberOfLines={4} />
+            <DropdownList label="Target Language" data={languagesName} onSelect={setSelectedLanguage} />
+            <TextInput mode="outlined" label="Translated Text" value={isLoading ? "Loading..." : output} className="w-full min-h-[200px] max-h-[200px]" editable={false} multiline />
+          </Card.Content>
+          <Card.Actions className="flex-row justify-between items-center my-4">
+            <Button mode="outlined" className="" onPress={handleClear}>Clear</Button>
+            <Button mode="contained" className="" onPress={() => { fetchTranslateResult(); Keyboard.dismiss(); }}>Translate</Button>
+          </Card.Actions>
+        </Card>
+      </TouchableWithoutFeedback >
     </>
   );
-}
+};
 
 export default Home;
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  input: {
-    width: '100%',
-    marginBottom: 16,
-    minHeight: 180,
-    maxHeight: 180,
-  },
-  buttonContainer: {
-    width: '100%',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    backgroundColor: 'transparent',
-  },
-  button: {
-    flex: 1,
-    marginHorizontal: 4,
-    marginBottom: 10,
-  },
-  halfButton: {
-    width: '48%',
-  },
-  card: {
-    width: '100%',
-  },
-  loader: {
-    margin: 16,
-  },
-});
