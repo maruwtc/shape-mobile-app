@@ -16,7 +16,7 @@ import {
   Card,
   Snackbar,
 } from "react-native-paper";
-import { Login, Register } from "@/api/firebase.auth";
+import { Login, Register } from "@/api/firebase";
 
 const Account = () => {
   const [email, setEmail] = useState("");
@@ -27,7 +27,7 @@ const Account = () => {
   const [error, setError] = useState<string | null>(null);
   const [isRegistering, setIsRegistering] = useState(false);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     setError(null);
     setLoading(true);
     Login(email, password)
@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   card: {
-    width: '80%',
+    width: '100%',
   },
   cardTitle: {
     textAlign: 'center',
