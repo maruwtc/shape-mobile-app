@@ -56,7 +56,7 @@ export const TranslateText = async (text: String, targetlanguage: String) => {
         const data = await response.json();
         const detectedSourceLanguage = data.translations[0].detected_source_language;
         const translatedText = data.translations[0].text;
-        return translatedText;
+        return { detectedSourceLanguage, translatedText };
     } catch (error) {
         console.error(error);
     }
