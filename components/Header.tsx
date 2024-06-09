@@ -7,8 +7,6 @@ const MORE_ICON = Platform.OS === 'ios' ? 'dots-horizontal' : 'dots-vertical';
 const Header = ({ title }: { title: String }) => (
     <Appbar.Header>
         <Appbar.Content title={title} />
-        <Appbar.Action icon="magnify" onPress={() => { }} />
-        <Appbar.Action icon={MORE_ICON} onPress={() => { }} />
     </Appbar.Header>
 );
 
