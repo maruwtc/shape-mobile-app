@@ -5,7 +5,7 @@ import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
 import "react-native-reanimated";
-import { PaperProvider } from 'react-native-paper';
+import { MD3LightTheme, MD3DarkTheme, PaperProvider } from "react-native-paper";
 
 import { useColorScheme } from "@/components/useColorScheme";
 
@@ -47,11 +47,47 @@ export default function RootLayout() {
   return <RootLayoutNav />;
 }
 
+const PaperLightTheme = {
+  ...MD3LightTheme,
+  colors: {
+    ...MD3LightTheme.colors,
+    primary: "#153b70",
+    accent: "#153b70",
+    background: "#f6f6f6",
+    surface: "#ffffff",
+    error: "#B00020",
+    text: "#000000",
+    onSurface: "#000000",
+    onBackground: "#000000",
+    disabled: "#000000",
+    placeholder: "#000000",
+    backdrop: "#000000",
+  },
+};
+
+const PaperDarkTheme = {
+  ...MD3DarkTheme,
+  colors: {
+    ...MD3DarkTheme.colors,
+    primary: "#4068a1",
+    accent: "#4068a1",
+    background: "#121212",
+    surface: "#121212",
+    error: "#cf6679",
+    text: "#ffffff",
+    onSurface: "#ffffff",
+    onBackground: "#ffffff",
+    disabled: "#ffffff",
+    placeholder: "#ffffff",
+    backdrop: "#ffffff",
+  },
+};
+
+
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
-
   return (
-    <PaperProvider>
+    <PaperProvider theme={colorScheme === "dark" ? PaperDarkTheme : PaperLightTheme}>
       <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
