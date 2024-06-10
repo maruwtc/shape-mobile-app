@@ -1,9 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Audio } from 'expo-av';
 import Header from '@/components/Header';
-import { IconButton, Button, Card, Divider, TextInput } from "react-native-paper";
-import { CreatePrediction, GetPredictionResult, CacnelPrediction } from '@/api/replicate';
+import { Alert, View } from 'react-native';
+import { IconButton, Button, Card, TextInput } from "react-native-paper";
+import { CreateSpeechToTextPrediction, GetSpeechToTextPredictionResult, CacnelSpeechToTextPrediction } from '@/api/replicate';
 import { UploadAudio } from '@/api/firebase';
+import DetectedLanguageBadge from '@/components/DetectedLanguageBadge';
+import { RetrieveLanguage, TranslateText } from '@/api/deepl';
+import DropdownList from '@/components/DropdownList';
 
 const App = () => {
     const [sound, setSound] = useState<Audio.Sound | null>(null);
@@ -12,6 +16,12 @@ const App = () => {
     const [transcription, setTranscription] = useState<string>("");
     const [permissionResponse, requestPermission] = Audio.usePermissions();
     const [translation, setTranslation] = useState<string>("");
+    const [detectedLanguage, setDetectedLanguage] = useState<string>("");
+    const [selectedLanguage, setSelectedLanguage] = useState<string>("");
+    // const [isLoading, setIsLoading] = useState(false);
+    const [isSpeechToTextLoading, setIsSpeechToTextLoading] = useState(false);
+    const [isTranslateLoading, setIsTranslateLoading] = useState(false);
+    const { languagesName, languagesCode } = RetrieveLanguage({ onSelect: setSelectedLanguage });
 
     useEffect(() => {
         return sound
@@ -63,26 +73,31 @@ const App = () => {
             console.log('Playing Sound', recordingUri);
             await sound.playAsync();
         } else {
+            Alert.alert("Error", "No recording available to play.");
             console.log('No recording available to play');
         }
     };
 
     const upLoadRecording = async () => {
-        if (!recordingUri) return;
+        if (!recordingUri) {
+            Alert.alert("Error", "No audio to upload.");
+            return;
+        }
         const uploadDateTime = new Date().toISOString().replace(/[-:.]/g, '');
         const filename = `recorded_audio_${uploadDateTime}.m4a`;
         try {
+            setIsSpeechToTextLoading(true);
             const firebaseUrl = await UploadAudio({ name: filename, uri: recordingUri });
             console.log("Audio uploaded to Firebase Storage:", firebaseUrl);
             if (!firebaseUrl) {
                 console.error("Error: Firebase URL is null or undefined.");
                 return;
             }
-            const { geturl, cancelurl } = await CreatePrediction(firebaseUrl);
+            const { geturl, cancelurl } = await CreateSpeechToTextPrediction(firebaseUrl);
             console.log("Prediction created successfully: geturl:", geturl, "cancelurl:", cancelurl);
             let result;
             while (true) {
-                result = await GetPredictionResult(geturl);
+                result = await GetSpeechToTextPredictionResult(geturl);
                 if (result.status === 'succeeded' || result.status === 'failed') {
                     break;
                 }
@@ -90,45 +105,86 @@ const App = () => {
             }
             if (result.status === 'succeeded') {
                 console.log("Transcription result:", result.output.text);
+                if (result.output === null) {
+                    setTranscription("No text detected.");
+                    return;
+                }
                 setTranscription(result.output.text);
             } else {
                 console.error("Transcription failed");
-                await CacnelPrediction(cancelurl);
+                await CacnelSpeechToTextPrediction(cancelurl);
             }
         } catch (error) {
             console.error("Error uploading audio to Firebase Storage or fetching transcription:", error);
+        } finally {
+            setIsSpeechToTextLoading(false);
         }
+    };
+
+    const fetchTranslateResult = async () => {
+        if (!transcription.trim() || !selectedLanguage) {
+            Alert.alert("Error", "Please upload voice and select a language.");
+            return;
+        }
+        setIsTranslateLoading(true);
+        try {
+            const selectedIndex = languagesName.indexOf(selectedLanguage);
+            if (selectedIndex !== -1) {
+                const translatedText = await TranslateText(transcription, languagesCode[selectedIndex]);
+                if (translatedText) {
+                    setTranslation(translatedText.translatedText);
+                    setDetectedLanguage(translatedText.detectedSourceLanguage);
+                } else {
+                    console.error("Translated text is undefined.");
+                }
+            } else {
+                console.error("Selected language not found in the list.");
+            }
+        } catch (error) {
+            console.error("Error fetching translation:", error);
+        } finally {
+            setIsTranslateLoading(false);
+        }
+    };
+
+
+    const handleClear = () => {
+        setTranscription("");
+        setTranslation("");
     };
 
     return (
         <>
             <Header title="Speech To Text" />
-            <Card className="flex-1 justify-center items-center w-full h-full">
-                <Card.Content className="justify-center items-center">
-                    <TextInput
-                        mode="outlined"
-                        label="Original Text"
-                        value={transcription}
-                        className="w-full min-h-[180px] max-h-[180px]"
-                        editable={false}
-                        multiline
-                    />
-                    <Divider className='w-full my-4 bg-gray-500' />
-                    <TextInput
-                        mode="outlined"
-                        label="Translated Text"
-                        value={translation}
-                        className="w-full min-h-[180px] max-h-[180px]"
-                        editable={false}
-                        multiline
-                    />
-                    <IconButton mode='outlined' icon="moon-full" size={48} iconColor={recording ? 'red' : 'green'} onPress={recording ? stopRecording : startRecording} className='mt-4' />
-                </Card.Content>
-                <Card.Actions className='justify-between items-center'>
-                    <Button onPress={playLastRecording}>Play Last Recording</Button>
-                    <Button onPress={upLoadRecording}>Upload & Transcribe</Button>
-                </Card.Actions>
-            </Card>
+            <View className="flex-1 items-center w-full h-full">
+                <DetectedLanguageBadge detectedLanguage={detectedLanguage} />
+                <TextInput
+                    mode="outlined"
+                    label="Original Text"
+                    value={isSpeechToTextLoading ? "Loading..." : transcription}
+                    className="w-full min-h-[180px] max-h-[180px]"
+                    editable={false}
+                    multiline
+                />
+                <DropdownList label="Target Language" data={languagesName} onSelect={setSelectedLanguage} />
+                <TextInput
+                    mode="outlined"
+                    label="Translated Text"
+                    value={isTranslateLoading ? "Loading..." : translation}
+                    className="w-full min-h-[180px] max-h-[180px]"
+                    editable={false}
+                    multiline
+                />
+                <View className="flex-row justify-around align-center w-full items-center mt-4">
+                    <Button mode="outlined" className="w-2/5" onPress={handleClear}>Clear</Button>
+                    <Button mode="contained" className="w-2/5" onPress={upLoadRecording}>Transcribe</Button>
+                </View>
+                <View className="flex-row justify-around align-center w-full items-center">
+                    <Button mode="outlined" className="w-1/3" onPress={playLastRecording}>Play</Button>
+                    <IconButton mode='outlined' icon="moon-full" size={48} iconColor={recording ? 'red' : 'green'} onPress={recording ? stopRecording : startRecording} />
+                    <Button mode="contained" className="w-1/3" onPress={fetchTranslateResult}>Translate</Button>
+                </View>
+            </View >
         </>
     );
 };
