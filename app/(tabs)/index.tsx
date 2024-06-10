@@ -1,30 +1,19 @@
-import { View, Alert, Keyboard, TouchableWithoutFeedback } from "react-native";
-import React, { useState, useEffect } from "react";
-import { TextInput, Button, Card, Badge } from "react-native-paper";
-import { GetLanguagesList, TranslateText } from "@/api/deepl";
+import { Alert, Keyboard, TouchableWithoutFeedback } from "react-native";
+import React, { useState } from "react";
+import { View } from "react-native";
+import { TextInput, Button, Card } from "react-native-paper";
+import { RetrieveLanguage, TranslateText } from "@/api/deepl";
 import DropdownList from "@/components/DropdownList";
 import Header from "@/components/Header";
+import DetectedLanguageBadge from "@/components/DetectedLanguageBadge";
 
 const Home = () => {
   const [input, setInput] = useState("");
   const [output, setOutput] = useState("");
   const [detectedLanguage, setDetectedLanguage] = useState<string>("");
-  const [languagesName, setLanguagesName] = useState<string[]>([]);
-  const [languagesCode, setLanguagesCode] = useState<string[]>([]);
   const [selectedLanguage, setSelectedLanguage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const languages = await GetLanguagesList();
-        setLanguagesName(languages.map(({ name }: any) => name));
-        setLanguagesCode(languages.map(({ code }: any) => code));
-      } catch (error) {
-        console.error("Error fetching languages:", error);
-      }
-    })();
-  }, []);
+  const { languagesName, languagesCode } = RetrieveLanguage({ onSelect: setSelectedLanguage });
 
   const fetchTranslateResult = async () => {
     if (!input.trim() || !selectedLanguage) {
@@ -61,18 +50,16 @@ const Home = () => {
     <>
       <Header title="Home" />
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <Card className="flex-1 justify-center items-center w-full h-full">
-          <Card.Content>
-            <Badge className="text-inherit bg-transparent text-teal-500">{detectedLanguage ? `Detected Language: ${detectedLanguage}` : "Detected Language:"}</Badge>
-            <TextInput mode="outlined" label="Enter Text" value={input} className="w-full min-h-[200px] max-h-[200px]" onChangeText={setInput} multiline numberOfLines={4} />
-            <DropdownList label="Target Language" data={languagesName} onSelect={setSelectedLanguage} />
-            <TextInput mode="outlined" label="Translated Text" value={isLoading ? "Loading..." : output} className="w-full min-h-[200px] max-h-[200px]" editable={false} multiline />
-          </Card.Content>
-          <Card.Actions className="flex-row justify-between items-center my-4">
-            <Button mode="outlined" className="" onPress={handleClear}>Clear</Button>
-            <Button mode="contained" className="" onPress={() => { fetchTranslateResult(); Keyboard.dismiss(); }}>Translate</Button>
-          </Card.Actions>
-        </Card>
+        <View className="flex-1 items-center w-full h-full">
+          <DetectedLanguageBadge detectedLanguage={detectedLanguage} />
+          <TextInput mode="outlined" label="Enter Text" value={input} className="w-full min-h-[180px] max-h-[180px]" onChangeText={setInput} multiline numberOfLines={4} />
+          <DropdownList label="Target Language" data={languagesName} onSelect={setSelectedLanguage} />
+          <TextInput mode="outlined" label="Translated Text" value={isLoading ? "Loading..." : output} className="w-full min-h-[180px] max-h-[180px]" editable={false} multiline />
+          <View className='flex-row justify-around w-full my-4'>
+            <Button mode="outlined" className="w-2/5" onPress={handleClear}>Clear</Button>
+            <Button mode="contained" className="w-2/5" onPress={() => { fetchTranslateResult(); Keyboard.dismiss(); }}>Translate</Button>
+          </View>
+        </View>
       </TouchableWithoutFeedback >
     </>
   );
