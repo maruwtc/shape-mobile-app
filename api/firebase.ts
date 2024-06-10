@@ -1,4 +1,4 @@
-import { auth, audioRef, storage } from "@/config/firebase.config";
+import { auth, storage } from "@/config/firebase.config";
 import {
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
@@ -53,3 +53,21 @@ export const UploadAudio = async ({ name, uri }: any) => {
         throw error;
     }
 };
+
+export const UploadImage = async ({ name, uri }: any) => {
+    try {
+        const base64 = await FileSystem.readAsStringAsync(uri, {
+            encoding: FileSystem.EncodingType.Base64,
+        });
+        const response = await fetch(`data:image/jpg;base64,${base64}`);
+        const blob = await response.blob();
+        const storageRef = ref(storage, name);
+        const snapshot = await uploadBytes(storageRef, blob);
+        const downloadURL = await getDownloadURL(snapshot.ref);
+        console.log("Download URL:", downloadURL);
+        return downloadURL;
+    } catch (error) {
+        console.error('Error uploading image:', error);
+        throw error;
+    }
+}
