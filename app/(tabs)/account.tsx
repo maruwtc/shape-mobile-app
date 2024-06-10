@@ -1,170 +1,209 @@
-import { View } from "@/components/Themed";
 import Header from "@/components/Header";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
   TouchableWithoutFeedback,
   Keyboard,
-  StyleSheet,
   ActivityIndicator,
-  Text,
 } from 'react-native';
 import {
   TextInput,
   Button,
   Card,
-  Snackbar,
+  Appbar,
+  Text,
 } from "react-native-paper";
-import { Login, Register } from "@/api/firebase";
+import { View } from "react-native";
+import { Login, Register, Logout } from "@/api/firebase";
+import { auth } from "@/config/firebase.config";
+import { onAuthStateChanged } from "firebase/auth";
+import * as Location from 'expo-location';
 
 const Account = () => {
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState<string>("");
+  const [lastLogin, setLastLogin] = useState<string>("");
+  const [locationLastLogin, setLocationLastLogin] = useState<string>("");
+  const [location, setLocation] = useState<string>("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [secureText, setSecureText] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isRegistering, setIsRegistering] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      const getLocationAndSetTime = async () => {
+        let { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          setError('Permission to access location was denied');
+          return;
+        }
+        let location = await Location.getCurrentPositionAsync({});
+        const timezoneOffset = new Date().getTimezoneOffset() * 60000;
+        const localTime = new Date(new Date(user!.metadata.lastSignInTime!).getTime() - timezoneOffset);
+        const reverseGeocode = await Location.reverseGeocodeAsync(location.coords);
+        const { city, region, country } = reverseGeocode[0];
+        setLocation(`${city}, ${region}, ${country}`);
+        setLocationLastLogin(localTime.toString());
+      };
+      if (user) {
+        setEmail(user.email!);
+        setLastLogin(user.metadata.lastSignInTime!);
+        setLocationLastLogin(locationLastLogin);
+        getLocationAndSetTime();
+        setIsLoggedIn(true);
+      } else {
+        setIsLoggedIn(false);
+      }
+    });
+    return () => unsubscribe();
+  }, [locationLastLogin]);
 
   const handleLogin = async () => {
     setError(null);
     setLoading(true);
-    Login(email, password)
-      .then(() => {
-        setLoading(false);
-        setError("Login successful!");
-      })
-      .catch((err) => {
-        setLoading(false);
-        if (err.code === "auth/user-not-found" || err.code === "auth/invalid-email" || err.code === "auth/wrong-password" || err.code === "auth/invalid-password" || err.code === "auth/missing-password" || err.code === "auth/invalid-credential") {
-          setError("Invalid credentials");
-        } else {
-          setError("An error occurred. Please try again later.");
-        }
-      });
+    try {
+      await Login(email, password);
+      setLoading(false);
+      setPassword("");
+      setIsLoggedIn(true);
+    } catch (err: any) {
+      setLoading(false);
+      setError(err.code === "auth/user-not-found" || err.code === "auth/invalid-email" || err.code === "auth/wrong-password" || err.code === "auth/invalid-password" || err.code === "auth/missing-password" || err.code === "auth/invalid-credential"
+        ? "Invalid credentials"
+        : "An error occurred. Please try again later."
+      );
+    }
   };
 
-  const handleRegister = () => {
+  const handleRegister = async () => {
     if (password !== confirmPassword) {
       setError("Passwords do not match");
       return;
     }
     setError(null);
     setLoading(true);
-    Register(email, password)
-      .then(() => {
-        setLoading(false);
-        setError("Registration successful!");
-        setIsRegistering(false);
-      })
-      .catch((err) => {
-        setLoading(false);
-        if (err.code === "auth/email-already-in-use") {
-          setError("Email already in use");
-        } else if (err.code === "auth/invalid-email") {
-          setError("Invalid email");
-        } else if (err.code === "auth/weak-password") {
-          setError("Password is too weak");
-        } else {
-          setError("An error occurred. Please try again later.");
-        }
-      });
+    try {
+      await Register(email, password);
+      setLoading(false);
+      setError("Registration successful!");
+      setIsRegistering(false);
+    } catch (err: any) {
+      setLoading(false);
+      setError(err.code === "auth/email-already-in-use"
+        ? "Email already in use"
+        : err.code === "auth/invalid-email"
+          ? "Invalid email"
+          : err.code === "auth/weak-password"
+            ? "Password is too weak"
+            : "An error occurred. Please try again later."
+      );
+    }
   };
 
-  return (
-    <>
-      <Header title="Account" />
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.container}>
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <View className="flex-1 items-center justify-center">
-            <Card style={styles.card}>
-              <Card.Title
-                title={isRegistering ? "Register" : "Login"}
-                titleStyle={styles.cardTitle}
+  const handleLogout = async () => {
+    try {
+      await Logout();
+      setIsLoggedIn(false);
+    } catch (err) {
+      setError("An error occurred. Please try again later.");
+    }
+  };
+
+  if (!isLoggedIn) {
+    return (
+      <>
+        <Appbar.Header>
+          {isRegistering ? <Appbar.BackAction onPress={() => { setIsRegistering(false); setError(null) }} /> : null}
+          <Appbar.Content title={isRegistering ? "Register" : "Login"} />
+        </Appbar.Header>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          className="flex-1"
+        >
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View className="w-full h-full justify-center px-6 space-y-4">
+              <TextInput
+                mode="outlined"
+                className="mx-2"
+                label="Email"
+                value={email}
+                onChangeText={setEmail}
               />
-              <Card.Content style={styles.textInput}>
+              <TextInput
+                mode="outlined"
+                className="mx-2"
+                label="Password"
+                value={password}
+                secureTextEntry={secureText}
+                right={<TextInput.Icon icon={secureText ? "eye" : "eye-off"} onPress={() => setSecureText(!secureText)} />}
+                onChangeText={setPassword}
+              />
+              {isRegistering && (
                 <TextInput
                   mode="outlined"
-                  label="Email"
-                  value={email}
-                  onChangeText={setEmail}
-                  style={{ marginBottom: 16 }}
-                />
-                <TextInput
-                  mode="outlined"
-                  label="Password"
-                  value={password}
+                  className="mx-2 my-4"
+                  label="Confirm Password"
+                  value={confirmPassword}
                   secureTextEntry={secureText}
                   right={<TextInput.Icon icon={secureText ? "eye" : "eye-off"} onPress={() => setSecureText(!secureText)} />}
-                  onChangeText={setPassword}
-                  style={{ marginBottom: 16 }}
+                  onChangeText={setConfirmPassword}
                 />
-                {isRegistering && (
-                  <TextInput
-                    mode="outlined"
-                    label="Confirm Password"
-                    value={confirmPassword}
-                    secureTextEntry={secureText}
-                    right={<TextInput.Icon icon={secureText ? "eye" : "eye-off"} onPress={() => setSecureText(!secureText)} />}
-                    onChangeText={setConfirmPassword}
-                    style={{ marginBottom: 16 }}
-                  />
-                )}
-                {error && <Text style={styles.errorText}>{error}</Text>}
-              </Card.Content>
-              <Card.Actions style={styles.buttonContainer}>
+              )}
+              {error && <Text className="text-rose-500 mt-2">{error}</Text>}
+              <View className="flex-row justify-center">
                 <Button
-                  style={[styles.button, { marginLeft: 8 }]}
-                  mode="outlined"
-                  onPress={() => setIsRegistering(!isRegistering)}
-                >
-                  {isRegistering ? "Login" : "Register"}
-                </Button>
-                <Button
-                  style={[styles.button, { marginRight: 8 }]}
+                  style={{ flex: 1, margin: 8 }}
                   mode="contained"
                   onPress={isRegistering ? handleRegister : handleLogin}
                   disabled={loading}
                 >
                   {loading ? <ActivityIndicator size="small" color="#ffffff" /> : isRegistering ? "Register" : "Login"}
                 </Button>
-              </Card.Actions>
-            </Card>
-          </View>
-        </TouchableWithoutFeedback>
-      </KeyboardAvoidingView>
-    </>
-  );
+              </View>
+              {!isRegistering && (
+                <>
+                  <Text className="p-4 text-center">Not yet registered?</Text>
+                  <Button
+                    className="mx-4"
+                    mode="outlined"
+                    onPress={() => { setIsRegistering(true); setError(null) }}
+                  >
+                    Register
+                  </Button>
+                </>
+              )}
+            </View>
+          </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
+      </>
+    );
+  } else {
+    return (
+      <>
+        <Header title="Account" />
+        <View className="flex-1 items-center justify-center">
+          <Card className="w-4/5 p-4">
+            <Card.Title title="Account" />
+            <Card.Content className="">
+              <Text>Email:</Text>
+              <Text>{email}</Text>
+              <Text>Last Login (Server time):</Text>
+              <Text>{lastLogin}</Text>
+              <Text>Last Login (Local time):</Text>
+              <Text>{locationLastLogin}</Text>
+              <Text>Location:</Text>
+              <Text>{location}</Text>
+              <Button mode="outlined" className="mt-6" onPress={handleLogout}>Logout</Button>
+            </Card.Content>
+          </Card>
+        </View>
+      </>
+    );
+  }
 }
 
 export default Account;
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  card: {
-    width: '100%',
-  },
-  cardTitle: {
-    textAlign: 'center',
-  },
-  textInput: {
-    padding: 16,
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-  },
-  button: {
-    flex: 1,
-    marginVertical: 8,
-  },
-  errorText: {
-    color: 'red',
-    marginTop: 8,
-  },
-});
