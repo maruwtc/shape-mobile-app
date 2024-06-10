@@ -99,7 +99,7 @@ export default function TabLayout() {
           options={{
             tabBarLabel: 'Account',
             tabBarIcon: ({ color, size }) => {
-              return <MaterialCommunityIcons name="account-settings-outline" size={size} color={color} />;
+              return <MaterialCommunityIcons name="account-outline" size={size} color={color} />;
             },
           }}
         />
