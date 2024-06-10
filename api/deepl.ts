@@ -1,4 +1,5 @@
 import { apikey } from "@/config/deepl.config"
+import { useEffect, useState } from "react";
 
 export const DeepLTest = async () => {
     try {
@@ -38,7 +39,7 @@ export const GetLanguagesList = async () => {
     }
 }
 
-export const TranslateText = async (text: String, targetlanguage: String) => {
+export const TranslateText = async (text: any, targetlanguage: any) => {
     try {
         const response = await fetch("https://api-free.deepl.com/v2/translate", {
             method: "POST",
@@ -61,3 +62,22 @@ export const TranslateText = async (text: String, targetlanguage: String) => {
         console.error(error);
     }
 }
+
+export const RetrieveLanguage = ({ onSelect }: any) => {
+    const [languagesName, setLanguagesName] = useState<string[]>([]);
+    const [languagesCode, setLanguagesCode] = useState<string[]>([]);
+
+    useEffect(() => {
+        (async () => {
+            try {
+                const languages = await GetLanguagesList();
+                setLanguagesName(languages.map(({ name }: any) => name));
+                setLanguagesCode(languages.map(({ code }: any) => code));
+            } catch (error) {
+                console.error("Error fetching languages:", error);
+            }
+        })();
+    }, []);
+
+    return { languagesName, languagesCode };
+};
