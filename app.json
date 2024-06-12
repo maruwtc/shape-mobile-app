@@ -21,7 +21,11 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "reactnative.expo.android"
+      "package": "reactnative.expo.android",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -41,7 +45,7 @@
       [
         "expo-image-picker",
         {
-          "photoPermission": "Allow $(PRODUCT_NAME) to access your photos",
+          "photoPermission": "Allow $(PRODUCT_NAME) to access your photos"
         }
       ]
     ],
@@ -55,6 +59,12 @@
       "eas": {
         "projectId": "54ae2905-f5ea-40db-91a4-f3a193cf5059"
       }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/54ae2905-f5ea-40db-91a4-f3a193cf5059"
     }
   }
 }
