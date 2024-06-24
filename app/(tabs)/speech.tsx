@@ -9,7 +9,7 @@ import DetectedLanguageBadge from '@/components/DetectedLanguageBadge';
 import { RetrieveLanguage, TranslateText } from '@/api/deepl';
 import DropdownList from '@/components/DropdownList';
 
-const App = () => {
+const Speech = () => {
     const [sound, setSound] = useState<Audio.Sound | null>(null);
     const [recording, setRecording] = useState<Audio.Recording | null>(null);
     const [recordingUri, setRecordingUri] = useState<string | null>(null);
@@ -189,4 +189,4 @@ const App = () => {
     );
 };
 
-export default App;
+export default Speech;

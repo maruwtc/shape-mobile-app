@@ -11,7 +11,7 @@ import { UploadImage } from '@/api/firebase';
 import { CreateImageToTextPrediction, GetImageToTextPredictionResult, CacnelImageToTextPrediction } from '@/api/replicate';
 import * as ImagePicker from 'expo-image-picker';
 
-export default function App() {
+const OCR = () => {
     const [permission, requestPermission] = useCameraPermissions();
     const [showCamera, setShowCamera] = useState(false);
     const [photoUri, setPhotoUri] = useState<string | null>(null);
@@ -215,3 +215,5 @@ export default function App() {
         </>
     );
 };
+
+export default OCR;
