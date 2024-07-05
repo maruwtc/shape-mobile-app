@@ -26,6 +26,7 @@ export default function TabLayout() {
           <BottomNavigation.Bar
             navigationState={state}
             safeAreaInsets={insets}
+            style={{ height: 80 }}
             onTabPress={({ route, preventDefault }) => {
               const event = navigation.emit({
                 type: 'tabPress',
@@ -50,16 +51,6 @@ export default function TabLayout() {
 
               return null;
             }}
-            getLabelText={({ route }) => {
-              const { options } = descriptors[route.key];
-              const label =
-                options.tabBarLabel !== undefined
-                  ? options.tabBarLabel
-                  : options.title !== undefined
-                    ? options.title
-                    : route.name;
-              return label as string;
-            }}
           />
         )}
       >
@@ -67,7 +58,6 @@ export default function TabLayout() {
           name="index"
           component={Home}
           options={{
-            tabBarLabel: 'Home',
             tabBarIcon: ({ color, size }) => {
               return <MaterialCommunityIcons name="translate" size={size} color={color} />;
             },
@@ -77,7 +67,6 @@ export default function TabLayout() {
           name="ocr"
           component={OCR}
           options={{
-            tabBarLabel: 'OCR',
             tabBarIcon: ({ color, size }) => {
               return <MaterialCommunityIcons name="camera-outline" size={size} color={color} />;
             },
@@ -87,7 +76,6 @@ export default function TabLayout() {
           name="voice"
           component={Speech}
           options={{
-            tabBarLabel: 'voice',
             tabBarIcon: ({ color, size }) => {
               return <MaterialIcons name="keyboard-voice" size={size} color={color} />;
             },
@@ -97,7 +85,6 @@ export default function TabLayout() {
           name="account"
           component={Account}
           options={{
-            tabBarLabel: 'Account',
             tabBarIcon: ({ color, size }) => {
               return <MaterialCommunityIcons name="account-outline" size={size} color={color} />;
             },

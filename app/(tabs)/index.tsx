@@ -50,7 +50,7 @@ const Home = () => {
     <>
       <Header title="Home" />
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View className="flex-1 items-center w-full h-full">
+        <View className="flex-1 items-center w-full h-full p-4">
           <DetectedLanguageBadge detectedLanguage={detectedLanguage} />
           <TextInput mode="outlined" label="Enter Text" value={input} className="w-full min-h-[180px] max-h-[180px]" onChangeText={setInput} multiline numberOfLines={4} />
           <DropdownList label="Target Language" data={languagesName} onSelect={setSelectedLanguage} />

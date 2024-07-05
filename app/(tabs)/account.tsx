@@ -23,7 +23,6 @@ import * as Location from 'expo-location';
 const Account = () => {
   const [email, setEmail] = useState<string>("");
   const [lastLogin, setLastLogin] = useState<string>("");
-  const [locationLastLogin, setLocationLastLogin] = useState<string>("");
   const [location, setLocation] = useState<string>("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -47,12 +46,10 @@ const Account = () => {
         const reverseGeocode = await Location.reverseGeocodeAsync(location.coords);
         const { city, region, country } = reverseGeocode[0];
         setLocation(`${city}, ${region}, ${country}`);
-        setLocationLastLogin(localTime.toString());
       };
       if (user) {
         setEmail(user.email!);
         setLastLogin(user.metadata.lastSignInTime!);
-        setLocationLastLogin(locationLastLogin);
         getLocationAndSetTime();
         setIsLoggedIn(true);
       } else {
@@ -60,7 +57,7 @@ const Account = () => {
       }
     });
     return () => unsubscribe();
-  }, [locationLastLogin]);
+  }, []);
 
   const handleLogin = async () => {
     setError(null);
@@ -193,8 +190,6 @@ const Account = () => {
               <Text>{email}</Text>
               <Text>Last Login (Server time):</Text>
               <Text>{lastLogin}</Text>
-              <Text>Last Login (Local time):</Text>
-              <Text>{locationLastLogin}</Text>
               <Text>Location:</Text>
               <Text>{location}</Text>
               <Button mode="outlined" className="mt-6" onPress={handleLogout}>Logout</Button>

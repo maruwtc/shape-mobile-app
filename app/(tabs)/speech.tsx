@@ -18,7 +18,6 @@ const Speech = () => {
     const [translation, setTranslation] = useState<string>("");
     const [detectedLanguage, setDetectedLanguage] = useState<string>("");
     const [selectedLanguage, setSelectedLanguage] = useState<string>("");
-    // const [isLoading, setIsLoading] = useState(false);
     const [isSpeechToTextLoading, setIsSpeechToTextLoading] = useState(false);
     const [isTranslateLoading, setIsTranslateLoading] = useState(false);
     const { languagesName, languagesCode } = RetrieveLanguage({ onSelect: setSelectedLanguage });
@@ -94,7 +93,6 @@ const Speech = () => {
                 return;
             }
             const { geturl, cancelurl } = await CreateSpeechToTextPrediction(firebaseUrl);
-            console.log("Prediction created successfully: geturl:", geturl, "cancelurl:", cancelurl);
             let result;
             while (true) {
                 result = await GetSpeechToTextPredictionResult(geturl);
@@ -104,7 +102,6 @@ const Speech = () => {
                 await new Promise(resolve => setTimeout(resolve, 2000));
             }
             if (result.status === 'succeeded') {
-                console.log("Transcription result:", result.output.text);
                 if (result.output === null) {
                     setTranscription("No text detected.");
                     return;
@@ -156,7 +153,7 @@ const Speech = () => {
     return (
         <>
             <Header title="Speech To Text" />
-            <View className="flex-1 items-center w-full h-full">
+            <View className="flex-1 items-center w-full h-full p-4">
                 <DetectedLanguageBadge detectedLanguage={detectedLanguage} />
                 <TextInput
                     mode="outlined"

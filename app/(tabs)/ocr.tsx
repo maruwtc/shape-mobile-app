@@ -21,7 +21,6 @@ const OCR = () => {
     const hidelastPictureModal = () => setLastPictureModal(false);
     const [detectedLanguage, setDetectedLanguage] = useState<string>("");
     const [selectedLanguage, setSelectedLanguage] = useState("");
-    // const [isLoading, setIsLoading] = useState(false);
     const [isOCRLoading, setIsOCRLoading] = useState(false);
     const [isTranslateLoading, setIsTranslateLoading] = useState(false);
     const { languagesName, languagesCode } = RetrieveLanguage({ onSelect: setSelectedLanguage });
@@ -45,10 +44,6 @@ const OCR = () => {
     };
 
     const OCR = async () => {
-        if (!photoUri) {
-            Alert.alert("Error", "No image to upload.");
-            return;
-        }
         const uploadDateTime = new Date().toISOString().replace(/[-:.]/g, '');
         const filename = `image_${uploadDateTime}.jpg`;
         try {
@@ -128,10 +123,6 @@ const OCR = () => {
     }
 
     const fetchTranslateResult = async () => {
-        if (!input.trim() || !selectedLanguage) {
-            Alert.alert("Error", "Please enter text and select a language.");
-            return;
-        }
         setIsTranslateLoading(true);
         try {
             const selectedIndex = languagesName.indexOf(selectedLanguage);
@@ -160,6 +151,19 @@ const OCR = () => {
         setPhotoUri(null);
     };
 
+    const click = async () => {
+        if (!photoUri) {
+            Alert.alert("Error", "No image to upload.");
+            return;
+        }
+        if (!selectedLanguage) {
+            Alert.alert("Error", "Please enter text and select a language.");
+            return;
+        }
+        await OCR();
+        await fetchTranslateResult();
+    }
+
     if (showCamera) {
         return (
             <>
@@ -175,7 +179,7 @@ const OCR = () => {
     return (
         <>
             <Header title="OCR" />
-            <View className='flex-1 items-center w-full h-full'>
+            <View className='flex-1 items-center w-full h-full p-4'>
                 <DetectedLanguageBadge detectedLanguage={detectedLanguage} />
                 <TextInput
                     mode="outlined"
@@ -196,7 +200,7 @@ const OCR = () => {
                 />
                 <View className='flex-row justify-around align-center w-full items-center mt-4'>
                     <Button mode="outlined" className='w-1/3' onPress={openCameraView}>Camera</Button>
-                    <IconButton mode='contained' icon="line-scan" size={36} iconColor='white' onPress={OCR} />
+                    <IconButton mode='contained' icon="line-scan" size={36} iconColor='white' onPress={click} />
                     <Button mode="outlined" className='w-1/3' onPress={pickImage}>Choose...</Button>
                 </View>
                 <Text className='text-center'>{photoUri ? 'Image saved' : null}</Text>
